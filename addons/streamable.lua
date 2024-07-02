@@ -1,59 +1,156 @@
-local Grim = getgenv().Grim
+Grim = getgenv().Grim
+if Grim.Setup.Loaded then
+    local grimUI = Instance.new("ScreenGui")
+    grimUI.Name = "GrimUI"
+    grimUI.Parent = game.CoreGui
+    grimUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    local Blur = Instance.new("BlurEffect")
+    Blur.Name = "grimUIBlur"
+    Blur.Size = 0
+    Blur.Parent = game.Lighting
+    
+    local function tweenGui(uiObject, properties, duration)
+        local tweenInfo = TweenInfo.new(duration or 1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        local tween = game:GetService("TweenService"):Create(uiObject, tweenInfo, properties)
+        tween:Play()
+        return tween
+    end
+    
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Parent = grimUI
+    Title.Size = UDim2.new(0, 230, 0, 50)
+    Title.Position = UDim2.new(0.5, -60, 0.5, -25)
+    Title.AnchorPoint = Vector2.new(0.4, 0.5)
+    Title.BackgroundTransparency = 1
+    Title.Text = "Grim"
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextScaled = true
+    Title.Font = Enum.Font.SourceSansBold
+    
+    local ccLabel = Instance.new("TextLabel")
+    ccLabel.Name = "CCLabel"
+    ccLabel.Parent = Title
+    ccLabel.Size = UDim2.new(0, 140, 0, 50)
+    ccLabel.Position = UDim2.new(0.54, -10, 0, 0)
+    ccLabel.AnchorPoint = Vector2.new(0, 0)
+    ccLabel.BackgroundTransparency = 1
+    ccLabel.Text = ".CC"
+    ccLabel.TextColor3 = Color3.fromRGB(127, 0, 255) -- Changed to purple (RGB: 127, 0, 255)
+    ccLabel.TextScaled = true
+    ccLabel.Font = Enum.Font.SourceSansBold
+    
+    local Subtext = Instance.new("TextLabel")
+    Subtext.Name = "Subtext"
+    Subtext.Parent = grimUI
+    Subtext.Size = UDim2.new(0, 300, 0, 20)
+    Subtext.Position = UDim2.new(0.5, 0, 0.5, -3)
+    Subtext.AnchorPoint = Vector2.new(0.5, 0)
+    Subtext.BackgroundTransparency = 1
+    Subtext.Text = "The future of Da Hood exploiting."
+    Subtext.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Subtext.TextScaled = true
+    Subtext.Font = Enum.Font.SourceSans
+    
+    local function showUI()
+        tweenGui(Title, { TextTransparency = 0 }, 0.5)
+        tweenGui(ccLabel, { TextTransparency = 0 }, 0.5)
+        tweenGui(Subtext, { TextTransparency = 0 }, 0.5)
+        tweenGui(Blur, { Size = 20 }, 0.5)
+    
+        wait(5)
+    
+        local fadeOutTween1 = tweenGui(Title, { TextTransparency = 1 }, 0.5)
+        tweenGui(ccLabel, { TextTransparency = 1 }, 0.5)
+        tweenGui(Subtext, { TextTransparency = 1 }, 0.5)
+        tweenGui(Blur, { Size = 0 }, 0.5)
+    
+        fadeOutTween1.Completed:Connect(function()
+            grimUI:Destroy()
+        end)
+    end
+    
+    showUI()
+end
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = game.Workspace.CurrentCamera
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local Stats = game:GetService("Stats")
-local Vector3New = Vector3.new
-local UDim2New = UDim2.new
-local Color3New = Color3.new
-local LockedTarget = nil
 
 local function GlobalChecks(Target)
-    local Character = Target.Character
-    if Grim.Checks.Dead and Character.BodyEffects["K.O"].Value then return false end
-    if Grim.Checks.Grabbed and Character:FindFirstChild("GRABBING_CONSTRAINT") then return false end
+    if Grim.Checks.Dead then
+        if Target.Character.BodyEffects["K.O"].Value then
+            return false
+        end
+    end
+
+    if Grim.Checks.Grabbed then
+        if Target.Character:FindFirstChild("GRABBING_CONSTRAINT") then
+            return false
+        end
+    end
+
     if Grim.Checks.Visible then
         local head = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")
-        local TargetVisiblePart = Character:FindFirstChild("Head")
+        local TargetVisiblePart = Target.Character:FindFirstChild("Head")
+
         if head and TargetVisiblePart then
-            local ray = Ray.new(head.Position, (TargetVisiblePart.Position - head.Position).unit * (TargetVisiblePart.Position - head.Position).magnitude)
-            local part = game.Workspace:FindPartOnRay(ray, LocalPlayer.Character)
-            return part and part:IsDescendantOf(Character)
+            local ray = Ray.new(head.Position, (TargetVisiblePart.Position - head.Position).unit * 9e9)
+            local part, position = game.Workspace:FindPartOnRay(ray, LocalPlayer.Character)
+            
+            if part and part:IsDescendantOf(Target.Character) then
+                return true
+            else
+                return false
+            end
         end
-        return false
     end
+
     return true
 end
 
-local function DrawFOVCircle(FOVConfig)
+local function DrawCamlockFOVCircle()
     local FOVCircle = Drawing.new("Circle")
-    FOVCircle.Thickness = FOVConfig.Thickness or 1
-    FOVCircle.Radius = FOVConfig.Radius
-    FOVCircle.Color = FOVConfig.Color or Color3New(255, 0, 0)
-    FOVCircle.Transparency = FOVConfig.Transparency or 0.5
-    FOVCircle.Visible = FOVConfig.Visible
-    FOVCircle.Filled = false
+    FOVCircle.Thickness = Grim.Camlock.FOV.Thickness or 1
+    FOVCircle.Radius = Grim.Camlock.FOV.Radius or 150
+    FOVCircle.Color = Grim.Camlock.FOV.Color or Color3.fromRGB(255, 0, 0)
+    FOVCircle.Transparency = Grim.Camlock.FOV.Transparency or 0.5
+    FOVCircle.Visible = Grim.Camlock.FOV.Visible
     return FOVCircle
 end
 
-local CamlockFOVCircle = DrawFOVCircle(Grim.Camlock.FOV)
-local SilentFOVCircle = DrawFOVCircle(Grim.Silent.FOV)
+local function DrawSilentFOVCircle()
+    local FOVCircle = Drawing.new("Circle")
+    FOVCircle.Thickness = Grim.Silent.FOV.Thickness or 1
+    FOVCircle.Radius = Grim.Silent.FOV.Radius or 150
+    FOVCircle.Color = Grim.Silent.FOV.Color or Color3.fromRGB(255, 0, 0)
+    FOVCircle.Transparency = Grim.Silent.FOV.Transparency or 0.5
+    FOVCircle.Visible = Grim.Silent.FOV.Visible
+    return FOVCircle
+end
 
-local function GetClosestTargetToMouse(FOVConfig, HitPart)
-    local closestTarget, shortestDistance = nil, FOVConfig.Radius
-    local mouseLocation = UserInputService:GetMouseLocation()
+local CamlockFOVCircle = DrawCamlockFOVCircle()
+local SilentFOVCircle = DrawSilentFOVCircle()
+
+local function GetClosestTargetToMouse()
+    local closestTarget = nil
+    local shortestDistance = Grim.Camlock.FOV.Radius 
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(HitPart) then
-            local TargetPart = player.Character:FindFirstChild(HitPart)
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(Grim.Camlock.HitPart) then
+            local TargetPart = player.Character:FindFirstChild(Grim.Camlock.HitPart)
             local ScreenPoint, onScreen = Camera:WorldToScreenPoint(TargetPart.Position)
+            
             if onScreen then
+                local mouseLocation = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
                 local distance = (Vector2.new(ScreenPoint.X, ScreenPoint.Y) - mouseLocation).magnitude
+                
                 if distance < shortestDistance and GlobalChecks(player) then
-                    closestTarget, shortestDistance = player, distance
+                    closestTarget = player
+                    shortestDistance = distance
                 end
             end
         end
@@ -62,121 +159,169 @@ local function GetClosestTargetToMouse(FOVConfig, HitPart)
     return closestTarget
 end
 
+local function GetClosestTargetToMouse_Silent()
+    local closestTarget = nil
+    local shortestDistance = Grim.Silent.FOV.Radius
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(Grim.Silent.HitPart) then
+            local TargetPart = player.Character:FindFirstChild(Grim.Silent.HitPart)
+            local ScreenPoint, onScreen = Camera:WorldToScreenPoint(TargetPart.Position)
+            
+            if onScreen then
+                local mouseLocation = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
+                local distance = (Vector2.new(ScreenPoint.X, ScreenPoint.Y) - mouseLocation).magnitude
+                
+                if distance < shortestDistance and GlobalChecks(player) then
+                    closestTarget = player
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+
+    return closestTarget
+end
 local function PredictTargetPosition(Target)
     local TargetPart = Target.Character:FindFirstChild(Grim.Camlock.HitPart)
     local Velocity = TargetPart.Velocity
-    local ping = tonumber(string.split(Stats.Network.ServerStatsItem["Data Ping"]:GetValueString(), '(')[1])
-    local RegularPrediction = Grim.Camlock.Prediction.AutoPred and (ping < 130 and (ping / 1000 + 0.037) or (ping / 1000 + 0.033)) or Grim.Camlock.Prediction.Regular_Prediction
-    local PredictedPosition = TargetPart.Position + Velocity * (RegularPrediction or 0)
+    local RegularPrediction
 
-    local AirPart = Target.Character:FindFirstChild(Grim.Camlock.AirPart)
-    if AirPart and Target.Character.Humanoid.FloorMaterial == Enum.Material.Air then
-        PredictedPosition = AirPart.Position
+    if Grim.Camlock.Prediction.AutoPred then
+        local ping = tonumber(string.split(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString(), '(')[1])
+        RegularPrediction = ping < 130 and (ping / 1000 + 0.037) or (ping / 1000 + 0.033)
+    else
+        if Grim.Camlock.Prediction.Enable_Axis then
+            RegularPrediction = Vector3.new(Grim.Camlock.Prediction.X_Axis, Grim.Camlock.Prediction.Y_Axis, 0)
+        else
+            RegularPrediction = Grim.Camlock.Prediction.Regular_Prediction
+        end
     end
 
+    local PredictedPosition = TargetPart.Position + Velocity * (RegularPrediction or 0)
     return PredictedPosition
 end
 
-local sgg = Instance.new("ScreenGui", game.CoreGui)
-local wm = Instance.new("TextLabel", sgg)
-wm.Size = UDim2New(0, 200, 0, 20)
-wm.TextColor3 = Color3New(1, 1, 1)
-wm.BackgroundTransparency = 1
-wm.TextTransparency = 0.6
-wm.Font = Enum.Font.Code
-wm.TextSize = 14
-wm.Text = "grim.cc : streamable"
-wm.TextStrokeTransparency = 0.8
-wm.Visible = false
-
-local function updateWatermarkPosition()
-    local Mouse = LocalPlayer:GetMouse()
-    wm.Position = UDim2New(0, Mouse.X - wm.AbsoluteSize.X / 2, 0, Mouse.Y + 25)
-end
-
-RunService.RenderStepped:Connect(function()
-    if Grim.Setup.Watermark then
-        updateWatermarkPosition()
-    end
-end)
-
+local SelectedEasing = Grim.Camlock.Smoothness.Easing
+local Direction_1 = Grim.Camlock.Smoothness.Direction
+local LockedTarget = nil
 local function Camlock()
+    if Grim.Camlock.Enabled == false then
+        LockedTarget = nil
+        return
+    end
     if not Grim.Camlock.Enabled then
         LockedTarget = nil
         return
     end
+
     if not LockedTarget then
-        LockedTarget = GetClosestTargetToMouse(Grim.Camlock.FOV, Grim.Camlock.HitPart)
+        LockedTarget = GetClosestTargetToMouse()
     end
+
     if LockedTarget and GlobalChecks(LockedTarget) then
         local PredictedPosition = PredictTargetPosition(LockedTarget)
-        local CamPos = Camera.CFrame.Position
-        local Direction = (PredictedPosition - CamPos).unit
-        local TargetPosition = CamPos + Direction
-        Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(CamPos, TargetPosition), Grim.Camlock.Smoothness.X_Axis or 0.1, Grim.Camlock.Smoothness.Y_Axis or 0.1)
+        local CameraPosition = Camera.CFrame.Position
+        local Direction = (PredictedPosition - CameraPosition).unit
+        local TargetPosition = CameraPosition + Direction
+        local NewCFrame = CFrame.new(CameraPosition, TargetPosition)
+    
+        local X_Axis = Grim.Camlock.Smoothness.X_Axis or 0.1
+        local Y_Axis = Grim.Camlock.Smoothness.Y_Axis or 0.1
+
+        if LockedTarget.Character.Humanoid.Jump then
+            PredictedPosition = PredictedPosition + Vector3.new(0, Grim.Camlock.JumpOffset, 0)
+        end
+    
+        local AirPart = LockedTarget.Character:FindFirstChild(Grim.Camlock.AirPart)
+        if AirPart and LockedTarget.Character.Humanoid.FloorMaterial == Enum.Material.Air then
+            PredictedPosition = AirPart.Position
+        end
+    
+        local LerpedCFrame = Camera.CFrame:Lerp(NewCFrame, X_Axis, Y_Axis, SelectedEasing, Direction_1)
+        Camera.CFrame = LerpedCFrame
     else
         LockedTarget = nil
     end
 end
 
+local function SilentAim(tool)
+    if tool:IsA("Tool") then
+        tool.Activated:Connect(function()
+            local closestTarget = GetClosestTargetToMouse_Silent()
+            if closestTarget and GlobalChecks(closestTarget) then
+                local PredictedPosition
+                local RegularPrediction
+
+                if Grim.Silent.Prediction.AutoPred then
+                    local ping = tonumber(string.split(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString(), '(')[1])
+                    RegularPrediction = ping < 130 and (ping / 1000 + 0.037) or (ping / 1000 + 0.033)
+                else
+                    if Grim.Silent.Prediction.Enable_Axis then
+                        RegularPrediction = Vector3.new(Grim.Silent.Prediction.X_Axis, Grim.Silent.Prediction.Y_Axis, 0)
+                    else
+                        RegularPrediction = Grim.Silent.Prediction.Regular_Prediction
+                    end
+                end
+                if closestTarget.Character.Humanoid.Jump then
+                    PredictedPosition = PredictedPosition + Vector3.new(0, JumpOffset, 0)
+                end
+
+                local AirPart = closestTarget.Character:FindFirstChild(Grim.Silent.AirPart)
+                if AirPart and closestTarget.Character.Humanoid.FloorMaterial == Enum.Material.Air then
+                    PredictedPosition = AirPart.Position
+                end
+
+                if Grim.Setup.Arg == "MousePosUpdate" then
+                    PredictedPosition = closestTarget.Character[Grim.Silent.HitPart].Position + Vector3.new(25, 100, 25) + (closestTarget.Character[Grim.Silent.HitPart].Velocity * RegularPrediction)
+                else
+                    PredictedPosition = closestTarget.Character[Grim.Silent.HitPart].Position + (closestTarget.Character[Grim.Silent.HitPart].Velocity * RegularPrediction)
+                end
+
+                game.ReplicatedStorage[Grim.Setup.Remote]:FireServer(Grim.Setup.Arg, PredictedPosition)
+            end
+        end)
+    end
+end
+LocalPlayer.CharacterAdded:Connect(function(character)
+    character.ChildAdded:Connect(SilentAim)
+end)
+
+if LocalPlayer.Character then
+    LocalPlayer.Character.ChildAdded:Connect(SilentAim)
+end  
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
     if input.KeyCode == Grim.Camlock.Keybind.Bind then
         Grim.Camlock.Enabled = not Grim.Camlock.Enabled
-        LockedTarget = Grim.Camlock.Enabled and GetClosestTargetToMouse(Grim.Camlock.FOV, Grim.Camlock.HitPart) or nil
+        if not Grim.Camlock.Enabled then
+            LockedTarget = nil
+        end
+        if Grim.Camlock.Enabled then
+            LockedTarget = GetClosestTargetToMouse()
+        end
     elseif input.KeyCode == Grim.Silent.Keybind.Bind then
-        Grim.Silent.Enabled = not Grim.Silent.Enabled
+        SilentAim()
     end
 end)
 
-local function SilentAim(tool)
-    if tool:IsA("Tool") then
-        tool.Activated:Connect(function()
-            if not Grim.Silent.Enabled then return end
-
-            local closestTarget = GetClosestTargetToMouse(Grim.Silent.FOV, Grim.Silent.HitPart)
-            if closestTarget and GlobalChecks(closestTarget) then
-                local Target = closestTarget.Character
-                local TargetPart = Target[Grim.Silent.HitPart]
-                local Velocity = TargetPart.Velocity
-                local ping = tonumber(string.split(Stats.Network.ServerStatsItem["Data Ping"]:GetValueString(), '(')[1])
-                local RegularPrediction = Grim.Silent.Prediction.AutoPred and (ping < 130 and (ping / 1000 + 0.037) or (ping / 1000 + 0.033)) or Grim.Silent.Prediction.Regular_Prediction
-                local PredictedPosition = TargetPart.Position + Velocity * RegularPrediction
-
-                local AirPart = Target:FindFirstChild(Grim.Silent.AirPart)
-                if AirPart and Target.Humanoid.FloorMaterial == Enum.Material.Air then
-                    PredictedPosition = AirPart.Position
-                end
-
-                tool.Grip = CFrame.new(TargetPart.Position, PredictedPosition)
-            end
-        end)
-    end
-end
-
-LocalPlayer.Backpack.ChildAdded:Connect(SilentAim)
-
 RunService.RenderStepped:Connect(function()
-    if Grim.Silent.Enabled then
-        local closestTarget = GetClosestTargetToMouse(Grim.Silent.FOV, Grim.Silent.HitPart)
-        if closestTarget and GlobalChecks(closestTarget) then
-            SilentFOVCircle.Visible = true
-            local ScreenPoint, onScreen = Camera:WorldToScreenPoint(closestTarget.Character[Grim.Silent.HitPart].Position)
-            if onScreen then
-                SilentFOVCircle.Position = Vector2.new(ScreenPoint.X, ScreenPoint.Y)
-            end
-        else
-            SilentFOVCircle.Visible = false
-        end
-    else
-        SilentFOVCircle.Visible = false
-    end
-
-    if Grim.Camlock.Enabled then
+    Camlock()
+    
+    if Grim.Camlock.FOV.Visible then
+        local mouseLocation = UserInputService:GetMouseLocation()
+        CamlockFOVCircle.Position = mouseLocation
         CamlockFOVCircle.Visible = true
-        Camlock()
     else
         CamlockFOVCircle.Visible = false
+    end
+
+    if Grim.Silent.FOV.Visible then
+        local mouseLocation = UserInputService:GetMouseLocation()
+        SilentFOVCircle.Position = mouseLocation
+        SilentFOVCircle.Visible = true
+    else
+        SilentFOVCircle.Visible = false
     end
 end)
