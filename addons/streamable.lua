@@ -24,7 +24,7 @@ if Grim.Setup.Loaded then
     Title.Position = UDim2.new(0.5, -60, 0.5, -25)
     Title.AnchorPoint = Vector2.new(0.4, 0.5)
     Title.BackgroundTransparency = 1
-    Title.Text = "Grim"
+    Title.Text = "grim"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.TextScaled = true
     Title.Font = Enum.Font.SourceSansBold
@@ -36,7 +36,7 @@ if Grim.Setup.Loaded then
     ccLabel.Position = UDim2.new(0.54, -10, 0, 0)
     ccLabel.AnchorPoint = Vector2.new(0, 0)
     ccLabel.BackgroundTransparency = 1
-    ccLabel.Text = ".CC"
+    ccLabel.Text = ".cc"
     ccLabel.TextColor3 = Color3.fromRGB(127, 0, 255) -- Changed to purple (RGB: 127, 0, 255)
     ccLabel.TextScaled = true
     ccLabel.Font = Enum.Font.SourceSansBold
@@ -233,8 +233,12 @@ local function Camlock()
             PredictedPosition = PredictedPosition + Vector3.new(0, Grim.Camlock.JumpOffset, 0)
         end
     
-        local AirPart = LockedTarget.Character:FindFirstChild(Grim.Camlock.AirPart)
-        if AirPart and LockedTarget.Character.Humanoid.FloorMaterial == Enum.Material.Air then
+        local AirPart = nil
+        if LockedTarget and LockedTarget.Character:FindFirstChild(Grim.Camlock.AirPart) and LockedTarget.Character.Humanoid.FloorMaterial == Enum.Material.Air then
+            AirPart = LockedTarget.Character:FindFirstChild(Grim.Camlock.AirPart)
+        end
+
+        if AirPart then
             PredictedPosition = AirPart.Position
         end
     
@@ -263,33 +267,38 @@ local function SilentAim(tool)
                         RegularPrediction = Grim.Silent.Prediction.Regular_Prediction
                     end
                 end
-                if closestTarget.Character.Humanoid.Jump then
-                    PredictedPosition = PredictedPosition + Vector3.new(0, JumpOffset, 0)
-                end
+                
+                if closestTarget.Character:FindFirstChild(Grim.Silent.HitPart) then
+                    local TargetPart = closestTarget.Character[Grim.Silent.HitPart]
+                    local AirPart = nil
 
-                local AirPart = closestTarget.Character:FindFirstChild(Grim.Silent.AirPart)
-                if AirPart and closestTarget.Character.Humanoid.FloorMaterial == Enum.Material.Air then
-                    PredictedPosition = AirPart.Position
-                end
+                    if Grim.Silent.AirPart and closestTarget.Character:FindFirstChild(Grim.Silent.AirPart) and closestTarget.Character.Humanoid.FloorMaterial == Enum.Material.Air then
+                        AirPart = closestTarget.Character[Grim.Silent.AirPart]
+                    end
 
-                if Grim.Setup.Arg == "MousePosUpdate" then
-                    PredictedPosition = closestTarget.Character[Grim.Silent.HitPart].Position + Vector3.new(25, 100, 25) + (closestTarget.Character[Grim.Silent.HitPart].Velocity * RegularPrediction)
-                else
-                    PredictedPosition = closestTarget.Character[Grim.Silent.HitPart].Position + (closestTarget.Character[Grim.Silent.HitPart].Velocity * RegularPrediction)
-                end
+                    if AirPart then
+                        PredictedPosition = AirPart.Position
+                    else
+                        PredictedPosition = TargetPart.Position + (TargetPart.Velocity * RegularPrediction)
+                        if Grim.Setup.Arg == "MousePosUpdate" then
+                            PredictedPosition = PredictedPosition + Vector3.new(25, 100, 25)
+                        end
+                    end
 
-                game.ReplicatedStorage[Grim.Setup.Remote]:FireServer(Grim.Setup.Arg, PredictedPosition)
+                    game.ReplicatedStorage[Grim.Setup.Remote]:FireServer(Grim.Setup.Arg, PredictedPosition)
+                end
             end
         end)
     end
 end
+
 LocalPlayer.CharacterAdded:Connect(function(character)
     character.ChildAdded:Connect(SilentAim)
 end)
 
 if LocalPlayer.Character then
     LocalPlayer.Character.ChildAdded:Connect(SilentAim)
-end  
+end 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
