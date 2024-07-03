@@ -234,9 +234,13 @@ local function Camlock()
         end
     
         local AirPart = nil
-        if LockedTarget and LockedTarget.Character:FindFirstChild(Grim.Camlock.AirPart) and LockedTarget.Character.Humanoid.FloorMaterial == Enum.Material.Air then
-            AirPart = LockedTarget.Character:FindFirstChild(Grim.Camlock.AirPart)
+        if LockedTarget and LockedTarget.Character:FindFirstChild(Grim.Camlock.AirPart) then
+            local humanoid = LockedTarget.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+                AirPart = LockedTarget.Character:FindFirstChild(Grim.Camlock.AirPart)
+            end
         end
+
 
         if AirPart then
             PredictedPosition = AirPart.Position
@@ -272,9 +276,13 @@ local function SilentAim(tool)
                     local TargetPart = closestTarget.Character[Grim.Silent.HitPart]
                     local AirPart = nil
 
-                    if Grim.Silent.AirPart and closestTarget.Character:FindFirstChild(Grim.Silent.AirPart) and closestTarget.Character.Humanoid.FloorMaterial == Enum.Material.Air then
-                        AirPart = closestTarget.Character[Grim.Silent.AirPart]
+                    if Grim.Silent.AirPart and closestTarget.Character:FindFirstChild(Grim.Silent.AirPart) then
+                    local humanoid = closestTarget.Character:FindFirstChildOfClass("Humanoid")
+                        if humanoid and humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+                            AirPart = closestTarget.Character[Grim.Silent.AirPart]
+                        end
                     end
+
 
                     if AirPart then
                         PredictedPosition = AirPart.Position
